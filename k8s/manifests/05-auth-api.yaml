@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-api-deployment
+  namespace: microservices
+  labels:
+    app: auth-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-api
+  template:
+    metadata:
+      labels:
+        app: auth-api
+    spec:
+      containers:
+      - name: auth-api
+        image: dockerfiles-auth-api
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080 # <-- Puerto fijo de la aplicación Go
+        envFrom:
+          - configMapRef:
+              name: app-config
+          - secretRef:
+              name: app-secrets
+        # VARIABLES DE ENTORNO CORREGIDAS PARA PUERTO FIJO Y CONEXIÓN A REDIS
+        env:
+          - name: SERVER_PORT
+            value: "8080"             # Fuerza a la app Go a escuchar en el puerto 8080
+          - name: REDIS_HOST
+            value: "redis-service"    # Host del servicio Redis
+          - name: REDIS_PORT
+            value: "6379"             # Puerto de Redis (siempre 6379)
+          # NOTA: REDIS_PASSWORD se ELIMINÓ porque Redis no está configurado con contraseña.
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+        # PROBES CORREGIDAS para apuntar al puerto fijo 8080
+        readinessProbe:
+          tcpSocket:
+            port: 8080 
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8080 
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-api-service
+  namespace: microservices
+spec:
+  selector:
+    app: auth-api
+  ports:
+  - protocol: TCP
+    port: 8081      # Puerto que el Service expone externamente (al frontend)
+    targetPort: 8080 # <-- Redirige al puerto interno fijo del Pod

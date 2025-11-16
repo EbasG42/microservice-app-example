@@ -1,0 +1,52 @@
+# ----------------------------------------
+# STAGE 1: BUILDER (Usa Node:12)
+# ----------------------------------------
+FROM node:12 AS builder
+
+# Establece el directorio de trabajo
+WORKDIR /app
+
+# [builder 3/7] Corrige los repositorios EOL (End-of-Life) de Debian Stretch.
+# Se ELIMINA la instalación de 'build-essential' y 'apt-get install'
+# porque el uso de Dart Sass (paquete 'sass') no requiere compilación nativa.
+RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+    && sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+    && sed -i '/stretch-updates/d' /etc/apt/sources.list \
+    && apt-get update \
+    && rm -rf /var/lib/apt/lists/*
+    
+# Copia los archivos de dependencias
+# [builder 4/7]
+COPY frontend/package.json frontend/package-lock.json ./
+
+# Instala todas las dependencias. Ahora usará 'sass' (JS puro).
+# [builder 5/7]
+RUN npm install --unsafe-perm
+
+# Copia el resto del código fuente del frontend
+# [builder 6/7]
+COPY frontend/ .
+
+# Construye la aplicación Vue (generando los archivos estáticos en /dist)
+# [builder 7/7]
+RUN npm run build
+
+
+# ----------------------------------------
+# STAGE 2: PRODUCTION (Usa Nginx:alpine)
+# ----------------------------------------
+FROM nginx:alpine
+
+# Copia la configuración de Nginx para el frontend
+# [stage-1 2/3]
+COPY frontend/config/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copia los archivos estáticos compilados desde la etapa 'builder' al directorio de Nginx
+# [stage-1 3/3]
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Puerto de Nginx
+EXPOSE 80
+
+# Inicia Nginx
+CMD ["nginx", "-g", "daemon off;"]

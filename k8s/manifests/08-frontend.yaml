@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: microservices
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: dockerfiles-frontend
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        env:
+        # El frontend necesita las variables en tiempo de ejecución
+        # para que nginx las sirva (esto requiere un script de entrada,
+        # pero para Minikube lo expondremos con LoadBalancer)
+        - name: AUTH_API_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: AUTH_API_ADDRESS
+        - name: TODOS_API_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: TODOS_API_ADDRESS
+        - name: USERS_API_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: USERS_API_ADDRESS
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: microservices
+spec:
+  # Usamos LoadBalancer para exponerlo fuera de Minikube
+  type: LoadBalancer 
+  selector:
+    app: frontend
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 80

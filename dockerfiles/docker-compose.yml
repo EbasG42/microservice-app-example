@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # Servicio de Frontend (Vue)
+  frontend:
+    build:
+      context: ..
+      dockerfile: dockerfiles/dockerfile.frontend
+    ports:
+      - "8080:80"
+    environment:
+      - AUTH_API_ADDRESS=http://auth-api:8081
+      - TODOS_API_ADDRESS=http://todos-api:8082
+      - USERS_API_ADDRESS=http://users-api:8083
+    depends_on:
+      - auth-api
+      - todos-api
+      - users-api
+
+  # API de Autenticación (Go)
+  auth-api:
+    build:
+      context: ..
+      dockerfile: dockerfiles/dockerfile.authApi
+    ports:
+      - "8081:8081"
+    environment:
+      - JWT_SECRET=mysecretkey
+      - REDIS_HOST=redis
+
+  # API de Tareas (Node.js)
+  todos-api:
+    build:
+      context: ..
+      dockerfile: dockerfiles/dockerfile.todoApi
+    ports:
+      - "8082:8082"
+    environment:
+      - JWT_SECRET=mysecretkey
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+
+  # API de Usuarios (Java)
+  users-api:
+    build:
+      context: ..
+      dockerfile: dockerfiles/dockerfile.userApi
+    ports:
+      - "8083:8083"
+    environment:
+      - JWT_SECRET=mysecretkey
+      - REDIS_HOST=redis
+
+  # Procesador de Logs (Python)
+  log-message-processor:
+    build:
+      context: ..
+      dockerfile: dockerfiles/dockerfile.log-message
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+
+  # Base de datos en memoria Redis
+  redis:
+    image: "redis:6.2-alpine"
+    ports:
+      - "6379:6379"

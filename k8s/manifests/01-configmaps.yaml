@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: microservices
+data:
+  # URLs de servicios internos
+  AUTH_API_ADDRESS: "http://auth-api-service:8081"
+  TODOS_API_ADDRESS: "http://todos-api-service:8082"
+  USERS_API_ADDRESS: "http://users-api-service:8083"
+  REDIS_HOST: "redis-service"

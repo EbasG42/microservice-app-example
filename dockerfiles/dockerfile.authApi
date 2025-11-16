@@ -1,0 +1,36 @@
+# --- Etapa de Build ---
+# Usamos Go 1.11 para compatibilidad con el gestor de dependencias 'dep'
+FROM golang:1.11-alpine AS builder
+
+# 1. Definir GOPATH y el WORKDIR correcto para el proyecto Go
+ENV GOPATH /go
+# CRÍTICO para dep: Define la ruta de importación simulada.
+ENV REPO_PATH github.com/EbasG42/microservice-app-example/auth-api
+WORKDIR $GOPATH/src/$REPO_PATH
+
+# 2. Instalar herramientas necesarias (git) y el gestor de dependencias 'dep'
+RUN apk update && apk add --no-cache git
+# 'go get' funciona en Go 1.11 para instalar el binario 'dep'
+RUN go get -u github.com/golang/dep/cmd/dep
+
+# 3. Copiamos TODO el código fuente, Gopkg.toml y Gopkg.lock
+# Ahora se copia todo el directorio 'auth-api' ANTES de ejecutar 'dep ensure'
+COPY auth-api/ ./
+
+# 4. Instalar las dependencias con 'dep'
+ENV PATH="/go/bin:${PATH}"
+RUN dep ensure -v
+
+# 5. Compilamos la aplicación
+RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-api .
+
+# --- Etapa Final ---
+FROM alpine:latest
+
+WORKDIR /
+# Copiamos solo el binario compilado
+COPY --from=builder /auth-api /auth-api
+
+EXPOSE 8081
+# Comando para correr la app
+CMD ["/auth-api"]

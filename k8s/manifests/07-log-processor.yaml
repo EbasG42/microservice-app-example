@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-processor-deployment
+  namespace: microservices
+  labels:
+    app: log-processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-processor
+  template:
+    metadata:
+      labels:
+        app: log-processor
+    spec:
+      containers:
+      - name: log-processor
+        image: dockerfiles-log-message-processor
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: REDIS_HOST
+            value: "redis-service"
+          - name: REDIS_PORT
+            value: "6379"
+          - name: REDIS_PASSWORD
+            value: ""

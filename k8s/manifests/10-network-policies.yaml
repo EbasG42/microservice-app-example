@@ -1,0 +1,150 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: microservices
+spec:
+  podSelector: {} # Selecciona todos los pods
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# 1. Permitir Egress DNS
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-dns-egress
+  namespace: microservices
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# 2. Frontend: Permitir Ingress de cualquier lugar
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-ingress-to-frontend
+  namespace: microservices
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Ingress
+  ingress:
+  - {} # Vacío significa "desde cualquier fuente"
+---
+# 3. Permitir Frontend -> APIs
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-frontend-to-apis
+  namespace: microservices
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: auth-api
+    - podSelector:
+        matchLabels:
+          app: users-api
+    - podSelector:
+        matchLabels:
+          app: todos-api
+---
+# 4. Permitir Auth API Ingress
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-ingress-to-auth-api
+  namespace: microservices
+spec:
+  podSelector:
+    matchLabels:
+      app: auth-api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+---
+# 5. Permitir Users API Ingress
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-ingress-to-users-api
+  namespace: microservices
+spec:
+  podSelector:
+    matchLabels:
+      app: users-api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+---
+# 6. Permitir Todos API Ingress
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-ingress-to-todos-api
+  namespace: microservices
+spec:
+  podSelector:
+    matchLabels:
+      app: todos-api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+---
+# 7. Permitir APIs -> Redis
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-apis-to-redis
+  namespace: microservices
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: auth-api
+    - podSelector:
+        matchLabels:
+          app: users-api
+    - podSelector:
+        matchLabels:
+          app: todos-api
+    - podSelector:
+        matchLabels:
+          app: log-processor
