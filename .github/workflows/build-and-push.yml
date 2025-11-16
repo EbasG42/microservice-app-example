@@ -35,7 +35,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./dockerfiles/dockerfile.usersApi
+          file: ./dockerfiles/dockerfile.userApi
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/users-api:latest
 
