@@ -83,10 +83,11 @@ jobs:
           echo "Aplicando tag $NEW_TAG a los manifiestos..."
           
           # Sustitución de imágenes (cambiando 'dockerfiles-auth-api' por la imagen de Docker Hub)
-        sed -i "s|image: dockerfiles-auth-api|image: $DOCKER_USER/auth-api:$NEW_TAG|g" k8s/manifests/05-auth-api.yaml
+          sed -i "s|image: dockerfiles-auth-api|image: $DOCKER_USER/auth-api:$NEW_TAG|g" k8s/manifests/05-auth-api.yaml
           sed -i "s|image: dockerfiles-users-api|image: $DOCKER_USER/users-api:$NEW_TAG|g" k8s/manifests/04-users-api.yaml
-          # Repite el sed para todos tus servicios (todos-api, log-processor, frontend, etc.)
-
+          sed -i "s|image: dockerfiles-auth-api|image: $DOCKER_USER/auth-api:$NEW_TAG|g" k8s/manifests/06-todos-api.yaml
+          sed -i "s|image: dockerfiles-auth-api|image: $DOCKER_USER/auth-api:$NEW_TAG|g" k8s/manifests/07-log-processor-api.yaml
+          sed -i "s|image: dockerfiles-auth-api|image: $DOCKER_USER/auth-api:$NEW_TAG|g" k8s/manifests/08-frontend-api.yaml            
           # 3. Aplicar los manifiestos actualizados para forzar un rolling update
           echo "Aplicando manifiestos actualizados..."
           kubectl apply -f k8s/ -n microservices
